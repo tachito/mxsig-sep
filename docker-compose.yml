@@ -1,0 +1,89 @@
+version: '3'
+
+services:
+### Backend
+  ### Apache
+    mxsig-ui:
+      build:
+        mxsig-ui
+      ports:
+      - "81:80"
+      restart: unless-stopped
+      networks:
+      - frontend
+      depends_on:
+      - tomcat
+      links:
+      - tomcat
+      container_name: 'mxsig-ui'
+
+### Fronted
+  ### mxsig-servicios
+### HAproxy
+    haproxy:
+      build:
+        mxsig-servicios/haproxy
+      networks:
+        - backend
+        - frontend
+      ports:
+        - "80:80"
+        - "70:70"
+      restart: always
+      links:
+        - mapserver
+        - tomcat
+        - mxsig-ui
+      container_name: 'mxsig-haproxy'
+### Tomcat
+    tomcat:
+      build:
+        mxsig-servicios/tomcat
+      ports:
+      - 8080:8080
+      networks:
+      - backend
+      container_name: 'mxsig-tomcat'
+### MapServer
+    mapserver:
+      build:
+        mxsig-servicios/mapserver
+      networks:
+      - backend
+      links:
+      - tomcat
+      ports:
+      - "8081:80"
+      restart: unless-stopped
+      container_name: 'mxsig-mapserver'
+
+### DB
+### postgres
+    mxsig-db:
+      build:
+        mxsig-db
+      environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      volumes:
+      -  data:/var/lib/postgresql/data
+      restart: always
+      ports:
+      - 5432:5432
+      networks:
+      - backend
+      links:
+      - tomcat
+      container_name: 'mxsig-db'
+
+
+
+volumes:
+    data:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
